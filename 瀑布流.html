@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<title>Document</title>
+<style>
+*{
+	margin:0;
+	padding:0;
+}
+ul{
+	width:1000px;
+	list-style: none;
+	position: relative;
+	margin: 0 auto;
+}
+ul li{
+	width:240px;
+	float: left;
+	margin:5px;
+}
+/*.continer{
+	height:auto; margin: 10px auto;border:1px solid #000;
+	}*/
+.continer {
+	position: relative;
+}
+.continer div{
+	transition:.5s;
+	margin-bottom:10px;
+	width:240px;
+	position: absolute;
+	left: 0;
+	top: 0;
+}
+.continer div img{width:100%;border:1px solid #ccc;display: block;}
+</style>
+</head>
+<body>
+	<div class="continer" id="div1">
+		
+	</div>
+<script src="jquery-3.1.1.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript">
+	
+	var $vieW = $(window).width();
+	var $pageW = 240;
+	var jg = 10;
+	var page=1;//第一组数据
+	var onOff = true;
+	var sjW = $pageW + jg; //实际的宽度加一张图片的宽度
+	
+	var len =Math.floor($vieW/$pageW);
+	console.log(len)
+	$(div1).css({
+		width:len*sjW-jg,
+		margin:'0 auto'
+	})
+	//把每个div的left和top值存储到数组中
+	var arrL = [];
+	var arrT = [];
+	var onOff = true;
+	for(var i = 0;i < len; i++){
+		arrL.push(i*sjW);
+		arrT.push(0);
+	}
+	pageFn();
+	function pageFn(){
+		$.ajax({
+			url:'http://www.wookmark.com/api/json/popular?callback=?',
+			data:{
+				page: page
+			},
+			dataType:'json',
+			success:function(data){
+				viewFn(data);
+			}
+		})
+	}
+	//ajax封装函数
+	function viewFn(data){
+		$.each(data,function(i,e){
+			var min = minIndex();
+			//已知：图片的宽高，div的宽度，求div的高度
+			//var h = div的宽度 *(图片的宽/图片的高)
+			if(e.height*1){
+				var h = $pageW*(e.height/e.width);//高度
+//				console.log(h)
+				var div = $('<div style="left:'+arrL[min]+'px;top:'+arrT[min]+'px;"><img src="'+e.preview+'"height="'+h+'"width="240"></div>');
+				$('#div1').append(div);
+				arrT[min] += ($(div)[0].scrollHeight+jg);
+			}
+			
+		});
+		onOff = true;
+	}
+	
+	//滚轮的时候加载图片
+	$(window).on('scroll',function(){
+		var index = minIndex();
+		//console.log(arrT[index],(window.innerHeight+document.body.scrollTop))
+		if((window.innerHeight+document.body.scrollTop) >= arrT[index]){
+			//alert('要加载')	
+			if(onOff){
+				onOff = false;
+				page++;
+				pageFn();
+			}
+		}
+	
+	});
+	
+	//屏幕缩放
+	$(window).on('resize',function(){
+		$vieW = $(window).width();
+		var len = Math.floor($vieW/$pageW);
+		//过界处理 
+		if(len> 7){
+			len = 7; 
+			return;
+		} else if(len < 3){
+			len = 3;
+			return;
+		}
+		
+		$(div1).css({
+			width: len*sjW-jg
+		})
+		
+		//重新计算每个div的位置
+		arrL.length = 0;
+		arrT.length = 0;
+		for(var i = 0; i < len; i++){
+			arrL.push(i*sjW);
+			arrT.push(0);
+		}
+		
+		var data = $('#div1').children();
+		$.each(data,function(i,e){
+			var min = minIndex();
+			if($(e).outerHeight()){
+				$(e).css({
+					left: arrL[min],
+					top:arrT[min]
+				});
+				arrT[min] += (e.scrollHeight+jg);
+			}
+		});
+	});
+	function minIndex(){
+		var max = Infinity;
+		var el = null;
+		$(arrT).each(function(i,e){
+			if(max > e){
+				max = e; 
+				el = i;
+			}
+		})
+		return el;
+	}
+</script>
+</body>
+</html>
